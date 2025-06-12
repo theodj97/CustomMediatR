@@ -6,13 +6,15 @@ namespace CustomMediatR;
 public static class IServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers the MediatR services in the given Assembly.
+    /// Registers the IRequestHandler in the given Assembly, and registers de IMediator service.
     /// </summary>
     /// <param name="services"></param>
     /// <param name="assembly"></param>
     /// <returns></returns>
     public static IServiceCollection AddMediatR(this IServiceCollection services, Assembly assembly)
     {
+        services.AddSingleton<IMediator, Mediator>();
+
         var handlerInterfaceType = typeof(IRequestHandler<,>);
 
         var handlerTypes = assembly.GetTypes()
@@ -27,6 +29,19 @@ public static class IServiceCollectionExtensions
             foreach (var interfaceType in implementedInterfaces)
                 services.AddTransient(interfaceType, handlerType);
         }
+
+        return services;
+    }
+
+
+    /// <summary>
+    /// Registers de IMediator service.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddMediatR(this IServiceCollection services)
+    {
+        services.AddSingleton<IMediator, Mediator>();
 
         return services;
     }
