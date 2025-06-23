@@ -122,4 +122,21 @@ public class MediatorTests
         Assert.NotNull(handlerOne);
         Assert.IsType<MockRequestHandler>(handlerOne);
     }
+
+    [Fact]
+    public void AddMediatR_ShouldRegisterMediator()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMediatR(Assembly.GetExecutingAssembly());
+
+        // Assert
+        var serviceProvider = services.BuildServiceProvider();
+
+        var mediatorService = serviceProvider.GetService<IMediator>();
+        Assert.NotNull(mediatorService);
+        Assert.IsAssignableFrom<IMediator>(mediatorService);
+    }
 }
