@@ -39,10 +39,17 @@ public class MockServiceProvider : IServiceProvider
         if (serviceType.IsGenericType && serviceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
         {
             var itemType = serviceType.GetGenericArguments()[0];
-            if (enumerableServices.TryGetValue(itemType, out var services))
-                return services;
 
-            return Enumerable.Empty<object>();
+            if (enumerableServices.TryGetValue(itemType, out var implementations))
+            {
+                var typedArray = Array.CreateInstance(itemType, implementations.Count);
+                for (int i = 0; i < implementations.Count; i++)
+                    typedArray.SetValue(implementations[i], i);
+
+                return typedArray;
+            }
+
+            return Array.CreateInstance(itemType, 0);
         }
 
         if (services.TryGetValue(serviceType, out var service))

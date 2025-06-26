@@ -1,5 +1,8 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
+using System.Threading.Tasks;
 using CustomMediatR.tests.Mocks;
+using CustomMediatR.Wrappers;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CustomMediatR.tests;
@@ -8,10 +11,17 @@ public class MediatorTests
 {
     private readonly MockServiceProvider serviceProvider;
     private readonly Mediator mediator;
+    private readonly ConcurrentDictionary<Type, object> handlerWrappers;
+
     public MediatorTests()
     {
         serviceProvider = new MockServiceProvider();
-        mediator = new Mediator(serviceProvider);
+        handlerWrappers = new ConcurrentDictionary<Type, object>();
+
+        RequestHandlerWrapper<MockRequest, MockResponse> requestHandleWrapper = new();
+        handlerWrappers[typeof(MockRequest)] = requestHandleWrapper;
+
+        mediator = new Mediator(serviceProvider, handlerWrappers);
     }
 
     [Fact]
@@ -36,6 +46,7 @@ public class MediatorTests
     public async Task Send_ShouldThrowInvalidOperationException_WhenHandlerIsNotRegistered()
     {
         // Arrange
+        handlerWrappers.Remove(typeof(MockRequest), out _);
         var request = new MockRequest { Message = "This will fail" };
 
         // Act & Assert
@@ -43,7 +54,7 @@ public class MediatorTests
             mediator.Send(request, CancellationToken.None)
         );
         var handlerType = typeof(IRequestHandler<,>).MakeGenericType(typeof(MockRequest), typeof(MockResponse));
-        Assert.Contains($"No service for type '{handlerType}' has been registered.", exception.Message);
+        Assert.Contains($"No handler registered for '{nameof(MockRequest)}'.", exception.Message);
     }
 
     [Fact]
@@ -53,7 +64,7 @@ public class MediatorTests
         var request = new MockRequest { Message = "Pipeline Test" };
         var handler = new MockRequestHandler();
         var executionOrder = new List<string>();
-        var behavior = new MockPipelineBehavior("Behavior1", executionOrder);
+        var behavior = new MockPipelineBehavior { Name = "Behavior1", ExecutionOrder = executionOrder };
 
         var handlerType = typeof(IRequestHandler<,>).MakeGenericType(typeof(MockRequest),
                                                                      typeof(MockResponse));
@@ -81,8 +92,8 @@ public class MediatorTests
         var request = new MockRequest { Message = "Multi Pipeline" };
         var handler = new MockRequestHandler();
         var executionOrder = new List<string>();
-        var behavior1 = new MockPipelineBehavior("Behavior1", executionOrder);
-        var behavior2 = new MockPipelineBehavior("Behavior2", executionOrder);
+        var behavior1 = new MockPipelineBehavior { Name = "Behavior1", ExecutionOrder = executionOrder };
+        var behavior2 = new MockPipelineBehavior { Name = "Behavior2", ExecutionOrder = executionOrder };
 
         var handlerType = typeof(IRequestHandler<,>).MakeGenericType(typeof(MockRequest), typeof(MockResponse));
         serviceProvider.AddService(handlerType, handler);
@@ -91,7 +102,6 @@ public class MediatorTests
                                                                                  typeof(MockResponse));
         serviceProvider.AddEnumerableService(behaviorInterfaceType, behavior1);
         serviceProvider.AddEnumerableService(behaviorInterfaceType, behavior2);
-
 
         // Act
         var response = await mediator.Send(request, CancellationToken.None);
@@ -138,5 +148,31 @@ public class MediatorTests
         var mediatorService = serviceProvider.GetService<IMediator>();
         Assert.NotNull(mediatorService);
         Assert.IsAssignableFrom<IMediator>(mediatorService);
+    }
+
+    [Fact]
+    public async Task AddMediatR_ShouldRegisterAllHandlersAndBehavioursFromAssembly_AndSend_ShouldWork()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddMediatR(typeof(MediatorTests).Assembly);
+        var serviceProvider = services.BuildServiceProvider();
+        var testMediator = serviceProvider.GetRequiredService<IMediator>();
+        var response = await testMediator.Send(new MockRequest { Message = "Hello World" });
+
+
+        // Assert
+        var handler = serviceProvider.GetService<IRequestHandler<MockRequest, MockResponse>>();
+        Assert.NotNull(handler);
+        Assert.IsType<MockRequestHandler>(handler);
+
+        var behavior = serviceProvider.GetService<IPipelineBehavior<MockRequest, MockResponse>>();
+        Assert.NotNull(behavior);
+        Assert.IsType<MockPipelineBehavior>(behavior);
+
+        Assert.NotNull(response);
+        Assert.Equal("Handled: Hello World", response.Result);
     }
 }
