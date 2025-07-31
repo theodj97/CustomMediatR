@@ -5,6 +5,7 @@ A simple and lightweight implementation of the Mediator pattern in .NET, inspire
 ## What is it?
 
 This package provides the basic abstractions to implement the Mediator pattern, helping to decouple business logic and create a customizable request processing pipeline.
+It's important to mention that this package is not NativeAOT compatible!
 
 ## Installation
 
@@ -39,13 +40,13 @@ Install-Package theodj97.CustomMediatR
 2.  **Register services in your `Program.cs` o `Startup.cs`:**
 
     ```csharp
-    // Add the mediator.
-    builder.Services.AddSingleton<IMediator, Mediator>();
+    // Opt 1, manually: Add the mediator.
+    builder.Services.AddMediatR();
 
-    // Add your handlers. Opt 1, manually:
+    // Opt 1, manually: Add your handlers.
     builder.Services.AddScoped<IRequestHandler<MyRequest, string>, MyRequestHandler>();
 
-    // Add your handlers. Opt 2, assembly reflection:
+    // Opt 2, assembly reflection: Add your handlers.
     builder.Services.AddMediatR(theAssembly);
     ```
 

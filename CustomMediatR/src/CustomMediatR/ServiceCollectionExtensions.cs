@@ -13,7 +13,7 @@ public static class ServiceCollectionExtensions
     /// <returns></returns>
     public static IServiceCollection AddMediatR(this IServiceCollection services, Assembly assembly)
     {
-        services.AddSingleton<IMediator, Mediator>();
+        services.AddTransient<IMediator, Mediator>();
 
         var handlerInterfaceType = typeof(IRequestHandler<,>);
 
@@ -35,13 +35,13 @@ public static class ServiceCollectionExtensions
 
 
     /// <summary>
-    /// Registers de IMediator service.
+    /// Registers de IMediator service. The IRequest and their IRequestHandlers should be manually registered.
     /// </summary>
     /// <param name="services"></param>
     /// <returns></returns>
     public static IServiceCollection AddMediatR(this IServiceCollection services)
     {
-        services.AddSingleton<IMediator, Mediator>();
+        services.AddTransient<IMediator, Mediator>();
 
         return services;
     }
