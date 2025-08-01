@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>theodj97.CustomMediatR</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Authors>Theo Delvas Játiva</Authors>
     <Description>A simple implementation simulating original MediatR functionality.</Description>
     <PackageTags>mediator mediatr cqrs design-patterns pipeline messaging</PackageTags>
